@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Manga Letterer — قرار دادن ترجمه در بالون‌ها</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">話</span>
+    <span class="brand-name">Manga&nbsp;Letterer</span>
+  </div>
+  <div class="topbar-actions">
+    <button id="btnExport" class="btn btn-primary" disabled>خروجی PNG</button>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- Left / top tool rail -->
+  <aside class="rail">
+
+    <section class="rail-group">
+      <h2 class="rail-title">تصویر</h2>
+      <label class="file-drop" for="imageInput">
+        <input type="file" id="imageInput" accept="image/*" hidden />
+        <span id="imageDropLabel">انتخاب یا رها کردن تصویر صفحه</span>
+      </label>
+      <p class="hint" id="imageInfo">هنوز تصویری انتخاب نشده</p>
+    </section>
+
+    <section class="rail-group">
+      <h2 class="rail-title">ابزار</h2>
+      <div class="tool-grid">
+        <button class="tool-btn" data-tool="pan" title="جابه‌جایی و پیمایش">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M4 8l8-6 8 6M4 16l8 6 8-6"/></svg>
+          <span>پیمایش</span>
+        </button>
+        <button class="tool-btn" data-tool="ellipse" title="بالون بیضی">
+          <svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="6"/></svg>
+          <span>بیضی</span>
+        </button>
+        <button class="tool-btn" data-tool="polygon" title="بالون آزاد (چندضلعی)">
+          <svg viewBox="0 0 24 24"><path d="M4 14 L9 4 L18 6 L20 16 L12 21 Z"/></svg>
+          <span>آزاد</span>
+        </button>
+        <button class="tool-btn" data-tool="select" title="ویرایش و جابه‌جایی بالون">
+          <svg viewBox="0 0 24 24"><path d="M5 3l5 16 2-7 7-2z"/></svg>
+          <span>انتخاب</span>
+        </button>
+      </div>
+      <p class="hint" id="toolHint">تصویر را بارگذاری کنید تا شروع کنید.</p>
+    </section>
+
+    <section class="rail-group">
+      <h2 class="rail-title">فونت متن</h2>
+      <label class="file-drop small" for="fontInput">
+        <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2" hidden />
+        <span id="fontDropLabel">فونت پیش‌فرض (Comic)</span>
+      </label>
+      <label class="field">
+        <span>راستای متن</span>
+        <select id="textDir">
+          <option value="rtl">راست‌به‌چپ (فارسی/عربی)</option>
+          <option value="ltr">چپ‌به‌راست (انگلیسی/لاتین)</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>حالت درشتی حروف</span>
+        <select id="textCase">
+          <option value="none">عادی</option>
+          <option value="upper">همه بزرگ (UPPERCASE)</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="rail-group">
+      <h2 class="rail-title">نما</h2>
+      <label class="field">
+        <span>بزرگ‌نمایی <b id="zoomVal">100%</b></span>
+        <input type="range" id="zoomRange" min="10" max="200" value="100" />
+      </label>
+      <div class="zoom-btns">
+        <button id="zoomOut" class="btn btn-ghost">−</button>
+        <button id="zoomFit" class="btn btn-ghost">تناسب عرض</button>
+        <button id="zoomIn" class="btn btn-ghost">+</button>
+      </div>
+    </section>
+
+  </aside>
+
+  <!-- Canvas workspace -->
+  <main class="workspace" id="workspace">
+    <div class="canvas-scroll" id="canvasScroll">
+      <div class="canvas-stage" id="canvasStage">
+        <canvas id="imageCanvas"></canvas>
+        <canvas id="overlayCanvas"></canvas>
+      </div>
+      <div class="empty-state" id="emptyState">
+        <p>یک تصویر صفحهٔ کلین‌شده (بدون متن) را بارگذاری کنید</p>
+        <p class="empty-sub">پشتیبانی از تصاویر بلند مثل ۷۲۰ × ۱۵۰۰۰ پیکسل</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Right / bottom balloon list + editor -->
+  <aside class="panel" id="balloonPanel">
+    <h2 class="rail-title">بالون‌ها <span id="balloonCount" class="count-badge">۰</span></h2>
+    <div class="balloon-list" id="balloonList">
+      <p class="hint" id="balloonEmptyHint">با ابزار «بیضی» یا «آزاد» روی یک بالون بکشید تا در این‌جا اضافه شود.</p>
+    </div>
+  </aside>
+
+</div>
+
+<!-- polygon drawing helper toast -->
+<div class="toast" id="polyToast" hidden>برای پایان دادن شکل، روی نقطهٔ اول دوبار کلیک/لمس کنید</div>
+
+<script src="script.js"></script>
+</body>
+</html>
