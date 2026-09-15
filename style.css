@@ -200,6 +200,41 @@ button{ font-family:inherit; }
   z-index:50;
 }
 
+.font-slot-list{ display:flex; flex-direction:column; gap:6px; }
+.font-slot-row{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  background: var(--panel-2); border:1px solid var(--line);
+  border-radius:7px; padding:6px 8px;
+}
+.font-slot-row .fs-label{ font-size:.76rem; line-height:1.4; }
+.font-slot-row .fs-label b{ display:block; font-size:.78rem; color:var(--ink); font-weight:600; }
+.font-slot-row .fs-label span{ color:var(--ink-dim); }
+.font-slot-row .fs-btn{
+  flex:0 0 auto; font-size:.7rem; padding:5px 9px;
+  background:var(--panel); border:1px solid var(--line); color:var(--ink-dim);
+  border-radius:6px; cursor:pointer; white-space:nowrap;
+}
+.font-slot-row.loaded .fs-btn{ border-color: var(--good); color: var(--good); }
+
+.balloon-card-controls{
+  display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;
+}
+.balloon-card-controls select{
+  flex:1; min-width:120px;
+  background: var(--panel); border:1px solid var(--line); color:var(--ink);
+  border-radius:7px; padding:6px 7px; font-size:.78rem;
+}
+.balloon-card-controls input[type=color]{
+  width:32px; height:30px; padding:0; border:1px solid var(--line);
+  border-radius:6px; background:var(--panel); cursor:pointer;
+}
+.reorder-btns{ display:flex; flex-direction:column; gap:0; }
+.reorder-btns button{
+  background:none; border:none; color:var(--ink-dim); cursor:pointer;
+  font-size:.7rem; line-height:1; padding:2px 4px;
+}
+.reorder-btns button:hover{ color: var(--accent); }
+
 /* ---------- Responsive: mobile ---------- */
 @media (max-width: 880px){
   :root{ font-size:14px; }

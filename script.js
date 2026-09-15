@@ -6,34 +6,51 @@
 (() => {
   "use strict";
 
+  /* ---------------- Balloon categories (fonts uploaded per-type by the user) ---------------- */
+  const CATEGORIES = [
+    { id: "simple",             label: "ساده",                          hint: "میخک بولد" },
+    { id: "sunThought",         label: "افکار خورشیدی",                 hint: "افرا" },
+    { id: "bubbleThought",      label: "افکار حبابی",                   hint: "مروارید" },
+    { id: "loudShout",          label: "فریاد بلند",                    hint: "افسانه" },
+    { id: "softShout",          label: "فریاد کم",                      hint: "کوروش" },
+    { id: "shiver",             label: "لرزش",                          hint: "غم آزاد" },
+    { id: "scary",              label: "ترسناک",                        hint: "عارف گرافیکی" },
+    { id: "rectPoly",           label: "مستطیل / چندضلعی",              hint: "فرناز" },
+    { id: "outsideTypesetter",  label: "بیرون بالون (تایپیست/مترجم)",   hint: "دست‌نویس" },
+    { id: "outsidePage",        label: "بیرون بالون (روی صفحه)",        hint: "هما" },
+    { id: "whisper",            label: "پچ‌پچ / آرام",                  hint: "معاصر" },
+    { id: "cute",               label: "کیوت / قلب‌دار",                hint: "جوده" },
+  ];
+
   /* ---------------- DOM refs ---------------- */
-  const imageInput   = document.getElementById("imageInput");
-  const imageInfo     = document.getElementById("imageInfo");
-  const imageDropLabel= document.getElementById("imageDropLabel");
-  const fontInput     = document.getElementById("fontInput");
-  const fontDropLabel = document.getElementById("fontDropLabel");
-  const textDirSel    = document.getElementById("textDir");
-  const textCaseSel   = document.getElementById("textCase");
-  const zoomRange     = document.getElementById("zoomRange");
-  const zoomVal       = document.getElementById("zoomVal");
-  const zoomInBtn      = document.getElementById("zoomIn");
-  const zoomOutBtn     = document.getElementById("zoomOut");
-  const zoomFitBtn     = document.getElementById("zoomFit");
-  const workspace      = document.getElementById("workspace");
-  const canvasScroll   = document.getElementById("canvasScroll");
-  const canvasStage    = document.getElementById("canvasStage");
-  const imageCanvas    = document.getElementById("imageCanvas");
-  const overlayCanvas  = document.getElementById("overlayCanvas");
-  const emptyState     = document.getElementById("emptyState");
-  const toolButtons    = Array.from(document.querySelectorAll(".tool-btn"));
-  const toolHint       = document.getElementById("toolHint");
-  const balloonList    = document.getElementById("balloonList");
-  const balloonCount   = document.getElementById("balloonCount");
-  const balloonEmptyHint = document.getElementById("balloonEmptyHint");
-  const btnExport      = document.getElementById("btnExport");
+  const imageInput     = document.getElementById("imageInput");
+  const imageInfo       = document.getElementById("imageInfo");
+  const imageDropLabel  = document.getElementById("imageDropLabel");
+  const textDirSel      = document.getElementById("textDir");
+  const textCaseSel     = document.getElementById("textCase");
+  const fontSlotList    = document.getElementById("fontSlotList");
+  const zoomRange       = document.getElementById("zoomRange");
+  const zoomVal         = document.getElementById("zoomVal");
+  const zoomInBtn       = document.getElementById("zoomIn");
+  const zoomOutBtn      = document.getElementById("zoomOut");
+  const zoomFitBtn      = document.getElementById("zoomFit");
+  const workspace       = document.getElementById("workspace");
+  const canvasScroll    = document.getElementById("canvasScroll");
+  const canvasStage     = document.getElementById("canvasStage");
+  const imageCanvas     = document.getElementById("imageCanvas");
+  const textCanvas      = document.getElementById("textCanvas");
+  const overlayCanvas   = document.getElementById("overlayCanvas");
+  const emptyState      = document.getElementById("emptyState");
+  const toolButtons     = Array.from(document.querySelectorAll(".tool-btn"));
+  const toolHint        = document.getElementById("toolHint");
+  const balloonList     = document.getElementById("balloonList");
+  const balloonCount    = document.getElementById("balloonCount");
+  const balloonEmptyHint= document.getElementById("balloonEmptyHint");
+  const btnExport       = document.getElementById("btnExport");
   const polyToast       = document.getElementById("polyToast");
 
   const ictx = imageCanvas.getContext("2d");
+  const tctx = textCanvas.getContext("2d");
   const octx = overlayCanvas.getContext("2d");
 
   /* ---------------- State ---------------- */
@@ -43,23 +60,74 @@
     naturalH: 0,
     zoom: 1,
     tool: "pan",
-    balloons: [],       // {id, type, points|ellipse, text, ok}
+    balloons: [],        // {id, type, geometry, text, color, category, ok}
     nextId: 1,
     selectedId: null,
-    fontFamily: '"BalloonFont", "Comic Sans MS", "Segoe Print", cursive, sans-serif',
+    fontSlots: {},        // categoryId -> true once a custom font is loaded
     dir: "rtl",
     textCase: "none",
-    drag: null,          // active pointer interaction
-    polygonDraft: null,  // {points:[...]}
-    renderPending: false,
+    drag: null,
+    polygonDraft: null,
+    textRenderPending: false,
   };
 
   const TOOL_LABELS = {
     pan: "برای پیمایش تصویر، آن را بکشید (روی موبایل با انگشت اسکرول کنید).",
-    ellipse: "برای رسم بالون بیضی، از یک گوشه تا گوشهٔ دیگر بکشید.",
-    polygon: "برای رسم بالون آزاد، نقطه‌به‌نقطه لمس/کلیک کنید و با دکمهٔ «پایان شکل» تمام کنید.",
-    select: "روی یک بالون کلیک کنید تا انتخاب شود؛ سپس بکشید تا جابه‌جا شود.",
+    ellipse: "بکش، رها کن، برای بالون بعدی دوباره بکش — نیازی به توقف نیست. متن‌ها را بعداً از لیست پایین/کنار وارد می‌کنی.",
+    polygon: "نقطه‌به‌نقطه لمس/کلیک کن، با «پایان شکل» تمام کن، و برای بالون بعدی دوباره شروع کن.",
+    select: "روی یک بالون کلیک کن تا انتخاب شود؛ سپس بکش تا جابه‌جا شود، یا از دستگیره برای تغییر اندازه استفاده کن.",
   };
+
+  function fallbackStack() {
+    return '"Comic Sans MS", "Segoe Print", cursive, sans-serif';
+  }
+  function fontFamilyFor(categoryId) {
+    return state.fontSlots[categoryId]
+      ? `"BF_${categoryId}", ${fallbackStack()}`
+      : fallbackStack();
+  }
+
+  /* ================= Font slot UI ================= */
+  function buildFontSlotUI() {
+    fontSlotList.innerHTML = "";
+    CATEGORIES.forEach(cat => {
+      const row = document.createElement("div");
+      row.className = "font-slot-row";
+      row.id = `fontrow-${cat.id}`;
+      row.innerHTML = `
+        <div class="fs-label"><b>${cat.label}</b><span>پیشنهادی: ${cat.hint}</span></div>
+        <button type="button" class="fs-btn">آپلود فونت</button>
+        <input type="file" accept=".ttf,.otf,.woff,.woff2" hidden />
+      `;
+      const btn = row.querySelector(".fs-btn");
+      const input = row.querySelector("input");
+      btn.addEventListener("click", () => input.click());
+      input.addEventListener("change", async () => {
+        const file = input.files[0];
+        if (!file) return;
+        try {
+          const buf = await file.arrayBuffer();
+          const face = new FontFace(`BF_${cat.id}`, buf);
+          await face.load();
+          document.fonts.add(face);
+          state.fontSlots[cat.id] = true;
+          row.classList.add("loaded");
+          btn.textContent = "✓ " + file.name;
+          scheduleTextRender();
+        } catch (err) {
+          alert(`فونت «${cat.label}» بارگذاری نشد.`);
+        }
+      });
+      fontSlotList.appendChild(row);
+    });
+  }
+  buildFontSlotUI();
+
+  function categoryOptionsHtml(selected) {
+    return CATEGORIES.map(c =>
+      `<option value="${c.id}" ${c.id === selected ? "selected" : ""}>${c.label}</option>`
+    ).join("");
+  }
 
   /* ================= Image loading ================= */
   imageInput.addEventListener("change", (e) => {
@@ -67,12 +135,11 @@
     if (file) loadImageFile(file);
   });
 
+  const dropZone = document.getElementById("imageDropLabel").parentElement;
   ["dragover", "dragenter"].forEach(ev =>
-    document.getElementById("imageDropLabel").parentElement.addEventListener(ev, (e) => {
-      e.preventDefault();
-    })
+    dropZone.addEventListener(ev, (e) => e.preventDefault())
   );
-  document.getElementById("imageDropLabel").parentElement.addEventListener("drop", (e) => {
+  dropZone.addEventListener("drop", (e) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith("image/")) loadImageFile(file);
@@ -81,13 +148,8 @@
   function loadImageFile(file) {
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      setImage(img, file.name);
-    };
-    img.onerror = () => {
-      alert("بارگذاری تصویر ناموفق بود. لطفاً فایل دیگری امتحان کنید.");
-    };
+    img.onload = () => { URL.revokeObjectURL(url); setImage(img, file.name); };
+    img.onerror = () => alert("بارگذاری تصویر ناموفق بود. لطفاً فایل دیگری امتحان کنید.");
     img.src = url;
   }
 
@@ -98,57 +160,46 @@
     state.balloons = [];
     state.selectedId = null;
 
-    imageCanvas.width = state.naturalW;
-    imageCanvas.height = state.naturalH;
-    overlayCanvas.width = state.naturalW;
-    overlayCanvas.height = state.naturalH;
+    [imageCanvas, textCanvas, overlayCanvas].forEach(c => {
+      c.width = state.naturalW;
+      c.height = state.naturalH;
+    });
+
+    // Base image is drawn ONCE. It is never touched again — this is what
+    // keeps dragging/typing smooth even on very tall (e.g. 720x15000) pages.
+    ictx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+    ictx.drawImage(img, 0, 0);
 
     imageDropLabel.textContent = name || "تصویر بارگذاری شد";
-    document.getElementById("imageDropLabel").parentElement.classList.add("has-file");
+    dropZone.classList.add("has-file");
     imageInfo.textContent = `${state.naturalW} × ${state.naturalH} پیکسل`;
     emptyState.style.display = "none";
     btnExport.disabled = false;
 
-    renderBalloonListEmpty();
-    scheduleRender();
+    rebuildBalloonList();
+    scheduleTextRender();
+    drawOverlay();
     fitZoomToWidth();
   }
 
-  /* ================= Custom font ================= */
-  fontInput.addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const buf = await file.arrayBuffer();
-      const face = new FontFace("BalloonFont", buf);
-      await face.load();
-      document.fonts.add(face);
-      fontDropLabel.textContent = file.name;
-      document.getElementById("fontDropLabel").parentElement.classList.add("has-file");
-      scheduleRender();
-    } catch (err) {
-      alert("این فایل فونت قابل بارگذاری نبود.");
-    }
-  });
-
-  textDirSel.addEventListener("change", () => { state.dir = textDirSel.value; scheduleRender(); });
-  textCaseSel.addEventListener("change", () => { state.textCase = textCaseSel.value; scheduleRender(); });
+  textDirSel.addEventListener("change", () => { state.dir = textDirSel.value; scheduleTextRender(); });
+  textCaseSel.addEventListener("change", () => { state.textCase = textCaseSel.value; scheduleTextRender(); });
 
   /* ================= Tool selection ================= */
   toolButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (state.polygonDraft) cancelPolygonDraft();
-      toolButtons.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      state.tool = btn.dataset.tool;
-      toolHint.textContent = TOOL_LABELS[state.tool] || "";
-      overlayCanvas.style.pointerEvents = state.tool === "pan" ? "none" : "auto";
-      polyToast.hidden = true;
-      drawOverlay();
-    });
+    btn.addEventListener("click", () => switchTool(btn.dataset.tool));
   });
   toolButtons[0].classList.add("active");
   overlayCanvas.style.pointerEvents = "none";
+
+  function switchTool(name) {
+    if (state.polygonDraft && name !== "polygon") cancelPolygonDraft();
+    toolButtons.forEach(b => b.classList.toggle("active", b.dataset.tool === name));
+    state.tool = name;
+    toolHint.textContent = TOOL_LABELS[name] || "";
+    overlayCanvas.style.pointerEvents = name === "pan" ? "none" : "auto";
+    drawOverlay();
+  }
 
   /* ================= Zoom ================= */
   function applyZoomToDom() {
@@ -156,7 +207,7 @@
     const h = state.naturalH * state.zoom;
     canvasStage.style.width = w + "px";
     canvasStage.style.height = h + "px";
-    [imageCanvas, overlayCanvas].forEach(c => {
+    [imageCanvas, textCanvas, overlayCanvas].forEach(c => {
       c.style.width = w + "px";
       c.style.height = h + "px";
     });
@@ -183,10 +234,7 @@
     const rect = overlayCanvas.getBoundingClientRect();
     const scaleX = state.naturalW / rect.width;
     const scaleY = state.naturalH / rect.height;
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
-    };
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
   }
 
   /* ================= Balloon geometry helpers ================= */
@@ -210,7 +258,6 @@
       if (t <= 0) return 0;
       return 2 * b.rx * Math.sqrt(t);
     }
-    // polygon: find intersections of horizontal ray with edges
     const pts = b.points;
     const xsHit = [];
     for (let i = 0; i < pts.length; i++) {
@@ -235,19 +282,24 @@
     if (b.type === "ellipse") {
       return Math.pow((x - b.cx) / b.rx, 2) + Math.pow((y - b.cy) / b.ry, 2) <= 1;
     }
-    // ray casting for polygon
     let inside = false;
     const pts = b.points;
     for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
       const xi = pts[i].x, yi = pts[i].y, xj = pts[j].x, yj = pts[j].y;
-      const intersect = ((yi > y) !== (yj > y)) &&
-        (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
       if (intersect) inside = !inside;
     }
     return inside;
   }
 
-  /* ================= Text fitting ================= */
+  /* ================= Text fitting =================
+     Rules encoded here (from the balloon-formatting reference):
+       - text block is horizontally & vertically centered in the shape
+       - a fixed padding is kept from the shape's edge (paddingRatio)
+       - row width follows the shape's actual width at that row (chordWidthAt),
+         which naturally makes an ellipse's middle line the longest and its
+         first/last lines the shortest.
+  */
   function wrapAtFontSize(ctx, b, text, fontSize, opts) {
     const box = getBBox(b);
     const lineHeight = fontSize * 1.22;
@@ -258,7 +310,6 @@
     const words = text.split(/\s+/).filter(Boolean);
     if (words.length === 0) return { lines: [], fontSize, lineHeight, fits: true, maxLines, box };
 
-    // Pass 1: estimate row widths assuming `maxLines` evenly spaced rows
     function rowsCenteredAt(n) {
       const rows = [];
       const top = box.minY + (box.height - n * lineHeight) / 2 + lineHeight / 2;
@@ -274,15 +325,13 @@
       let cur = "";
       let rowIdx = 0;
       for (let i = 0; i < words.length; i++) {
-        if (rowIdx >= rows.length) return null; // overflow
+        if (rowIdx >= rows.length) return null;
         const candidate = cur ? cur + " " + words[i] : words[i];
         const w = ctx.measureText(candidate).width;
         const rowW = rows[rowIdx] ? rows[rowIdx].width : 0;
         if (w <= rowW || !cur) {
-          // word fits on current line, or line is still empty (force-place even if oversized)
           cur = candidate;
         } else {
-          // doesn't fit: push current line, start a new row with this word
           lines.push({ text: cur, y: rows[rowIdx].y });
           rowIdx++;
           if (rowIdx >= rows.length) return null;
@@ -299,7 +348,6 @@
     let lines = greedyWrap(rowsCenteredAt(maxLines));
     if (!lines) return { lines: null, fontSize, lineHeight, fits: false, maxLines, box };
 
-    // Pass 2: re-center rows using the actual number of lines used, for tighter vertical centering
     const k = lines.length;
     if (k >= 1 && k < maxLines) {
       const lines2 = greedyWrap(rowsCenteredAt(k));
@@ -314,61 +362,58 @@
     if (!text.trim()) return { lines: [], fontSize: 16, fits: true };
 
     const box = getBBox(b);
-    let lo = 8;
-    let hi = Math.max(lo, Math.floor(Math.min(box.height * 0.6, box.width * 0.5, 140)));
+    const lo = 8;
+    const hi = Math.max(lo, Math.floor(Math.min(box.height * 0.6, box.width * 0.5, 140)));
     let best = null;
 
-    // Linear scan from hi down to lo, first success wins (robust vs. non-monotonic wraps)
     for (let fs = hi; fs >= lo; fs -= 2) {
       const res = wrapAtFontSize(ctx, b, text, fs, opts);
       if (res.fits) { best = res; break; }
     }
     if (!best) {
-      // even smallest size doesn't fit: use smallest and allow overflow, flag warn
       best = wrapAtFontSize(ctx, b, text, lo, opts);
       if (!best.fits) {
-        // force a naive wrap so at least something renders
         best = { lines: text.split(/\s+/).map((w, i) => ({ text: w, y: box.minY + 10 + i * (lo * 1.22) })), fontSize: lo, lineHeight: lo * 1.22 };
       }
       best.fits = false;
     }
-    best.fontSize = best.fontSize || best.fs;
     return best;
   }
 
-  /* ================= Rendering ================= */
-  function scheduleRender() {
-    if (state.renderPending) return;
-    state.renderPending = true;
+  /* ================= Rendering =================
+     imageCanvas: the original page, drawn exactly once on load — never redrawn.
+     textCanvas : transparent layer holding only the rendered translated text;
+                  this is the ONLY thing re-rendered while editing, so typing,
+                  dragging, and resizing stay fast even on very tall images.
+     overlayCanvas: UI chrome only (outlines / handles), also cheap.
+  */
+  function scheduleTextRender() {
+    if (state.textRenderPending) return;
+    state.textRenderPending = true;
     requestAnimationFrame(() => {
-      state.renderPending = false;
-      renderImageCanvas();
-      drawOverlay();
+      state.textRenderPending = false;
+      renderTextCanvas();
       updateBalloonListFits();
     });
   }
 
-  function renderImageCanvas() {
+  function renderTextCanvas() {
+    tctx.clearRect(0, 0, textCanvas.width, textCanvas.height);
     if (!state.img) return;
-    ictx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
-    ictx.drawImage(state.img, 0, 0);
-
-    const opts = { fontFamily: state.fontFamily, textCase: state.textCase };
-    ictx.textBaseline = "middle";
-    ictx.fillStyle = "#000";
-    ictx.direction = state.dir;
-    ictx.textAlign = "center";
+    tctx.textBaseline = "middle";
+    tctx.direction = state.dir;
+    tctx.textAlign = "center";
 
     state.balloons.forEach(b => {
-      const fit = fitTextToShape(ictx, b, b.text, opts);
+      const fontFamily = fontFamilyFor(b.category);
+      const fit = fitTextToShape(tctx, b, b.text, { fontFamily, textCase: state.textCase });
       b.ok = fit.fits !== false;
       if (!fit.lines || !fit.lines.length) return;
       const box = getBBox(b);
       const cx = (box.minX + box.maxX) / 2;
-      ictx.font = `${fit.fontSize}px ${state.fontFamily}`;
-      fit.lines.forEach(line => {
-        ictx.fillText(line.text, cx, line.y);
-      });
+      tctx.font = `${fit.fontSize}px ${fontFamily}`;
+      tctx.fillStyle = b.color || "#000000";
+      fit.lines.forEach(line => tctx.fillText(line.text, cx, line.y));
     });
   }
 
@@ -417,9 +462,7 @@
     octx.fill();
     octx.stroke();
   }
-  function drawEllipseHandle(b) {
-    drawHandle(b.cx + b.rx, b.cy + b.ry);
-  }
+  function drawEllipseHandle(b) { drawHandle(b.cx + b.rx, b.cy + b.ry); }
 
   /* ================= Pointer interaction ================= */
   overlayCanvas.addEventListener("pointerdown", onPointerDown);
@@ -450,7 +493,6 @@
       }
       drawOverlay();
     } else if (state.tool === "select") {
-      // check resize handle first
       const sel = state.balloons.find(b => b.id === state.selectedId);
       if (sel && sel.type === "ellipse") {
         const hx = sel.cx + sel.rx, hy = sel.cy + sel.ry;
@@ -466,7 +508,6 @@
           return;
         }
       }
-      // otherwise hit-test balloons (topmost first)
       const hit = [...state.balloons].reverse().find(b => pointInBalloon(b, p.x, p.y));
       if (hit) {
         selectBalloon(hit.id);
@@ -514,14 +555,17 @@
       if (d.mode === "move") {
         moveBalloon(d.balloon, p.x - d.last.x, p.y - d.last.y);
         d.last = p;
-        scheduleRender();
+        drawOverlay();
+        scheduleTextRender();
       } else if (d.mode === "resize-ellipse") {
         d.balloon.rx = Math.max(10, Math.abs(p.x - d.balloon.cx));
         d.balloon.ry = Math.max(10, Math.abs(p.y - d.balloon.cy));
-        scheduleRender();
+        drawOverlay();
+        scheduleTextRender();
       } else if (d.mode === "drag-vertex") {
         d.balloon.points[d.idx] = p;
-        scheduleRender();
+        drawOverlay();
+        scheduleTextRender();
       }
     }
   }
@@ -533,20 +577,19 @@
       const rx = Math.abs(p.x - s.x) / 2, ry = Math.abs(p.y - s.y) / 2;
       if (rx > 8 && ry > 8) {
         const b = {
-          id: state.nextId++,
-          type: "ellipse",
+          id: state.nextId++, type: "ellipse",
           cx: (s.x + p.x) / 2, cy: (s.y + p.y) / 2,
-          rx, ry, text: "",
+          rx, ry, text: "", color: "#000000", category: "simple",
         };
         state.balloons.push(b);
-        selectBalloon(b.id);
+        state.selectedId = b.id;
         addBalloonCard(b);
-        switchTool("select");
-        focusBalloonTextarea(b.id);
+        // Stay on the ellipse tool so several balloons can be marked back-to-back.
       }
     }
     state.drag = null;
-    scheduleRender();
+    drawOverlay();
+    scheduleTextRender();
   }
 
   function redrawExistingOutlines() {
@@ -564,35 +607,27 @@
   }
   function finishPolygonDraft() {
     if (!state.polygonDraft || state.polygonDraft.points.length < 3) { cancelPolygonDraft(); return; }
-    const b = { id: state.nextId++, type: "polygon", points: state.polygonDraft.points, text: "" };
+    const b = {
+      id: state.nextId++, type: "polygon", points: state.polygonDraft.points,
+      text: "", color: "#000000", category: "simple",
+    };
     state.balloons.push(b);
     state.polygonDraft = null;
     polyToast.hidden = true;
-    selectBalloon(b.id);
+    state.selectedId = b.id;
     addBalloonCard(b);
-    switchTool("select");
-    focusBalloonTextarea(b.id);
-    scheduleRender();
+    // Stay on the polygon tool for the next balloon.
+    scheduleTextRender();
+    drawOverlay();
   }
   function cancelPolygonDraft() {
     state.polygonDraft = null;
     polyToast.hidden = true;
     drawOverlay();
   }
-  function switchTool(name) {
-    toolButtons.forEach(b => b.classList.toggle("active", b.dataset.tool === name));
-    state.tool = name;
-    toolHint.textContent = TOOL_LABELS[name] || "";
-    overlayCanvas.style.pointerEvents = name === "pan" ? "none" : "auto";
-  }
 
   /* ================= Balloon list panel ================= */
-  function renderBalloonListEmpty() {
-    balloonList.innerHTML = "";
-    balloonList.appendChild(balloonEmptyHint);
-    balloonEmptyHint.style.display = state.balloons.length ? "none" : "block";
-    balloonCount.textContent = toPersianDigits(state.balloons.length);
-  }
+  function indexOfBalloon(id) { return state.balloons.findIndex(b => b.id === id); }
 
   function addBalloonCard(b) {
     balloonEmptyHint.style.display = "none";
@@ -601,7 +636,13 @@
     card.dataset.id = b.id;
     card.innerHTML = `
       <div class="balloon-card-head">
-        <b>بالون #${toPersianDigits(indexOfBalloon(b.id) + 1)}</b>
+        <span style="display:flex;align-items:center;gap:4px;">
+          <span class="reorder-btns">
+            <button data-action="up" title="بالاتر">▲</button>
+            <button data-action="down" title="پایین‌تر">▼</button>
+          </span>
+          <b>بالون #${toPersianDigits(indexOfBalloon(b.id) + 1)}</b>
+        </span>
         <span>
           <span class="fit-badge ok" data-role="fit">مناسب</span>
           <button class="icon-btn" data-action="focus" title="نمایش در بوم">◎</button>
@@ -609,30 +650,47 @@
         </span>
       </div>
       <textarea placeholder="متن ترجمه‌شده…" data-role="text">${escapeHtml(b.text)}</textarea>
+      <div class="balloon-card-controls">
+        <select data-role="category">${categoryOptionsHtml(b.category)}</select>
+        <input type="color" data-role="color" value="${b.color}" title="رنگ متن" />
+      </div>
     `;
     balloonList.appendChild(card);
     balloonCount.textContent = toPersianDigits(state.balloons.length);
 
-    const ta = card.querySelector("textarea");
-    ta.addEventListener("input", () => {
-      b.text = ta.value;
-      scheduleRender();
-    });
+    const ta = card.querySelector('[data-role="text"]');
+    ta.addEventListener("input", () => { b.text = ta.value; scheduleTextRender(); });
+
+    const catSel = card.querySelector('[data-role="category"]');
+    catSel.addEventListener("change", () => { b.category = catSel.value; scheduleTextRender(); });
+
+    const colorInput = card.querySelector('[data-role="color"]');
+    colorInput.addEventListener("input", () => { b.color = colorInput.value; scheduleTextRender(); });
+
     card.addEventListener("click", (e) => {
-      if (e.target === ta) { selectBalloon(b.id); return; }
       const action = e.target.dataset.action;
+      if (!action) { if (e.target === ta) selectBalloon(b.id); return; }
       if (action === "delete") deleteBalloon(b.id);
       if (action === "focus") { selectBalloon(b.id); scrollToBalloon(b); }
+      if (action === "up") reorderBalloon(b.id, -1);
+      if (action === "down") reorderBalloon(b.id, 1);
     });
   }
 
-  function indexOfBalloon(id) { return state.balloons.findIndex(b => b.id === id); }
+  function reorderBalloon(id, dir) {
+    const i = indexOfBalloon(id);
+    const j = i + dir;
+    if (j < 0 || j >= state.balloons.length) return;
+    [state.balloons[i], state.balloons[j]] = [state.balloons[j], state.balloons[i]];
+    rebuildBalloonList();
+  }
 
   function deleteBalloon(id) {
     state.balloons = state.balloons.filter(b => b.id !== id);
     if (state.selectedId === id) state.selectedId = null;
     rebuildBalloonList();
-    scheduleRender();
+    scheduleTextRender();
+    drawOverlay();
   }
 
   function rebuildBalloonList() {
@@ -655,15 +713,6 @@
     drawOverlay();
   }
 
-  function focusBalloonTextarea(id) {
-    const card = balloonList.querySelector(`.balloon-card[data-id="${id}"]`);
-    if (card) {
-      const ta = card.querySelector("textarea");
-      card.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      setTimeout(() => ta.focus(), 150);
-    }
-  }
-
   function scrollToBalloon(b) {
     const box = getBBox(b);
     const cx = (box.minX + box.maxX) / 2 * state.zoom;
@@ -681,28 +730,27 @@
       if (!card) return;
       const badge = card.querySelector('[data-role="fit"]');
       if (!badge) return;
-      if (b.ok === false) {
-        badge.textContent = "جا نمی‌شود";
-        badge.className = "fit-badge warn";
-      } else {
-        badge.textContent = "مناسب";
-        badge.className = "fit-badge ok";
-      }
+      if (b.ok === false) { badge.textContent = "جا نمی‌شود"; badge.className = "fit-badge warn"; }
+      else { badge.textContent = "مناسب"; badge.className = "fit-badge ok"; }
     });
   }
 
   function escapeHtml(s) {
     return (s || "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
   }
-  function toPersianDigits(n) {
-    return String(n).replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);
-  }
+  function toPersianDigits(n) { return String(n).replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]); }
 
   /* ================= Export ================= */
   btnExport.addEventListener("click", () => {
     if (!state.img) return;
-    renderImageCanvas(); // ensure fully up to date, no overlay included
-    imageCanvas.toBlob((blob) => {
+    renderTextCanvas(); // make sure text layer is fully up to date
+    const out = document.createElement("canvas");
+    out.width = imageCanvas.width;
+    out.height = imageCanvas.height;
+    const octx2 = out.getContext("2d");
+    octx2.drawImage(imageCanvas, 0, 0);
+    octx2.drawImage(textCanvas, 0, 0);
+    out.toBlob((blob) => {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "translated-page.png";

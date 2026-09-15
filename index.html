@@ -56,11 +56,7 @@
     </section>
 
     <section class="rail-group">
-      <h2 class="rail-title">فونت متن</h2>
-      <label class="file-drop small" for="fontInput">
-        <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2" hidden />
-        <span id="fontDropLabel">فونت پیش‌فرض (Comic)</span>
-      </label>
+      <h2 class="rail-title">تنظیمات متن</h2>
       <label class="field">
         <span>راستای متن</span>
         <select id="textDir">
@@ -75,6 +71,12 @@
           <option value="upper">همه بزرگ (UPPERCASE)</option>
         </select>
       </label>
+    </section>
+
+    <section class="rail-group">
+      <h2 class="rail-title">فونت هر نوع بالون</h2>
+      <p class="hint">برای هر نوع بالون، فایل فونت خودت رو آپلود کن (اختیاری — در صورت نبود، فونت پیش‌فرض استفاده می‌شه).</p>
+      <div id="fontSlotList" class="font-slot-list"></div>
     </section>
 
     <section class="rail-group">
@@ -97,6 +99,7 @@
     <div class="canvas-scroll" id="canvasScroll">
       <div class="canvas-stage" id="canvasStage">
         <canvas id="imageCanvas"></canvas>
+        <canvas id="textCanvas"></canvas>
         <canvas id="overlayCanvas"></canvas>
       </div>
       <div class="empty-state" id="emptyState">
@@ -109,8 +112,9 @@
   <!-- Right / bottom balloon list + editor -->
   <aside class="panel" id="balloonPanel">
     <h2 class="rail-title">بالون‌ها <span id="balloonCount" class="count-badge">۰</span></h2>
+    <p class="hint">اول همهٔ بالون‌ها رو با ابزار «بیضی»/«آزاد» مشخص کن (پشت‌سرهم، بدون وقفه)، بعد از این پایین به ترتیب متن هر کدوم رو وارد کن.</p>
     <div class="balloon-list" id="balloonList">
-      <p class="hint" id="balloonEmptyHint">با ابزار «بیضی» یا «آزاد» روی یک بالون بکشید تا در این‌جا اضافه شود.</p>
+      <p class="hint" id="balloonEmptyHint">هنوز بالونی مشخص نشده.</p>
     </div>
   </aside>
 
