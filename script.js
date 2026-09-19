@@ -73,8 +73,8 @@
 
   const TOOL_LABELS = {
     pan: "برای پیمایش تصویر، آن را بکشید (روی موبایل با انگشت اسکرول کنید).",
-    ellipse: "بکش، رها کن، برای بالون بعدی دوباره بکش — نیازی به توقف نیست. متن‌ها را بعداً از لیست پایین/کنار وارد می‌کنی.",
-    polygon: "نقطه‌به‌نقطه لمس/کلیک کن، با «پایان شکل» تمام کن، و برای بالون بعدی دوباره شروع کن.",
+    ellipse: "با این ابزار هر نوع بالون گرد رو بکش (ساده، افکار، فریاد، لرزش، ترسناک، پچ‌پچ، کیوت، بیرون‌بالون...) — اسم دقیق نوعش رو بعداً از لیست کنار انتخاب می‌کنی. بکش، رها کن، برای بالون بعدی دوباره بکش.",
+    polygon: "این ابزار فقط برای بالون‌های مستطیلی/چندضلعی است. نقطه‌به‌نقطه لمس/کلیک کن و با «پایان شکل» تمام کن.",
     select: "روی یک بالون کلیک کن تا انتخاب شود؛ سپس بکش تا جابه‌جا شود، یا از دستگیره برای تغییر اندازه استفاده کن.",
   };
 
@@ -174,6 +174,7 @@
     dropZone.classList.add("has-file");
     imageInfo.textContent = `${state.naturalW} × ${state.naturalH} پیکسل`;
     emptyState.style.display = "none";
+    canvasStage.classList.add("visible");
     btnExport.disabled = false;
 
     rebuildBalloonList();
@@ -609,7 +610,7 @@
     if (!state.polygonDraft || state.polygonDraft.points.length < 3) { cancelPolygonDraft(); return; }
     const b = {
       id: state.nextId++, type: "polygon", points: state.polygonDraft.points,
-      text: "", color: "#000000", category: "simple",
+      text: "", color: "#000000", category: "rectPoly",
     };
     state.balloons.push(b);
     state.polygonDraft = null;

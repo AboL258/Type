@@ -138,8 +138,10 @@ button{ font-family:inherit; }
   margin:24px;
   height:fit-content;
   box-shadow: 0 10px 40px rgba(0,0,0,.5);
+  display:none;
 }
-#imageCanvas, #overlayCanvas{
+.canvas-stage.visible{ display:block; }
+#imageCanvas, #textCanvas, #overlayCanvas{
   display:block;
   position:absolute;
   top:0; left:0;
@@ -200,7 +202,7 @@ button{ font-family:inherit; }
   z-index:50;
 }
 
-.font-slot-list{ display:flex; flex-direction:column; gap:6px; }
+.font-slot-list{ display:flex; flex-direction:column; gap:6px; max-height:230px; overflow-y:auto; padding-inline-end:2px; }
 .font-slot-row{
   display:flex; align-items:center; justify-content:space-between; gap:8px;
   background: var(--panel-2); border:1px solid var(--line);
@@ -240,11 +242,12 @@ button{ font-family:inherit; }
   :root{ font-size:14px; }
   .app{
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto minmax(240px, 1fr) auto;
   }
   .rail{
     border-left:none; border-bottom:1px solid var(--line);
-    display:flex; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden;
+    display:flex; flex-wrap:nowrap; overflow-x:auto; overflow-y:auto;
+    max-height:42vh;
     padding:10px;
     gap:14px;
   }
@@ -252,7 +255,8 @@ button{ font-family:inherit; }
   .tool-grid{ grid-template-columns: repeat(4,1fr); min-width:260px; }
   .panel{
     border-right:none; border-top:1px solid var(--line);
-    max-height:38vh;
+    max-height:34vh;
   }
+  .workspace{ min-height:240px; }
   .canvas-stage{ margin:14px; }
 }
